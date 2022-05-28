@@ -1,22 +1,23 @@
+import cv2
+import numpy as np
+import sys
+
 from utils import *
 
-import numpy as np
-import cv2
+SMOOTHING_RADIUS = 5
 
-SMOOTHING_RADIUS = 3
-
-def moving_avg(curve, radius):
+def moving_avg(series, radius):
     window_size = 2 * radius + 1
     f = np.ones(window_size) / window_size
-    curve_pad = np.lib.pad(curve, (radius,radius), 'edge')
-    curve_smoothed = np.convolve(curve_pad, f, mode='same')
-    curve_smoothed = curve_smoothed[radius:-radius]
-    return curve_smoothed
+    series_pad = np.lib.pad(series, (radius, radius), 'reflect')
+    series_smoothed = np.convolve(series_pad, f, mode='same')
+    series_smoothed = series_smoothed[radius:-radius]
+    return series_smoothed
 
 def smooth(trajectory):
     smoothed_trajectory = np.copy(trajectory)
-    for i in range(3):
-        smoothed_trajectory[:,i] = moving_avg(trajectory[:,i], radius=SMOOTHING_RADIUS)
+    for i in range(smoothed_trajectory.shape[1]):
+        smoothed_trajectory[:,i] = moving_avg(trajectory[:,i],SMOOTHING_RADIUS)
     return smoothed_trajectory
 
 def fixBorder(frame):
@@ -26,70 +27,46 @@ def fixBorder(frame):
     return frame
 
 def apply_stabilization(input_video, output_video):
-    cap = cv2.VideoCapture(input_video)
-    params = get_video_parameters(cap)
-    n_frames = params["frame_count"]
-    w = params["width"]
-    h = params["height"]
-    fourcc = params["fourcc"]
-    output = cv2.VideoWriter(output_video, fourcc, params["fps"], (w,h))
+    frames = extract_frames_list(input_video)
+    gray_first_frame = cv2.cvtColor(frames[0], cv2.COLOR_BGR2GRAY)
+    detector = cv2.SIFT_create()
+    prev_key_points, prev_descriptors = detector.detectAndCompute(gray_first_frame, None)
 
-    _, prev = cap.read()
-    prev_gray = cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY)
+    transforms = np.zeros((len(frames)-1, 9), dtype=np.float32)
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+    for i,frame in enumerate(frames[1:]):
+        sys.stdout.write(f"--Calculating Transform for frame: {i+2}/{len(frames)}\r")
+        sys.stdout.flush()
 
-    transforms = np.zeros((n_frames-1, 3), np.float32)
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        key_points, descriptors = detector.detectAndCompute(gray_frame, None)
 
-    for i in range(n_frames - 2):
-        prev_points = cv2.goodFeaturesToTrack(prev_gray, maxCorners=200, qualityLevel=0.01, minDistance=30, blockSize=3)
+        matches = bf.match(prev_descriptors, descriptors)
+        matches = sorted(matches, key=lambda m: m.distance)[:int(len(matches)*0.15)]
 
-        ret,frame = cap.read()
-        if not ret:
-            break
+        src_points = np.float32([prev_key_points[m.queryIdx].pt for m in matches]).reshape(-1,2)
+        dst_points = np.float32([key_points[m.trainIdx].pt for m in matches]).reshape(-1,2)
+        
+        M, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC)
 
-        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        curr_points, status, err = cv2.calcOpticalFlowPyrLK(prev_gray, frame_gray, prev_points, None)
-        assert prev_points.shape == curr_points.shape
-
-        idx = np.where(status == 1)[0]
-        prev_points = prev_points[idx]
-        curr_points = curr_points[idx]
-
-        m = cv2.estimateAffinePartial2D(prev_points, curr_points)[0]
-
-        dx = m[0,2]
-        dy = m[1,2]
-
-        da = np.arctan2(m[1,0], m[0,0])
-
-        transforms[i] = [dx,dy,da]
-
-        prev_gray = frame_gray
+        transforms[i] = M.flatten()
+        prev_key_points, prev_descriptors = key_points, descriptors
+    print("")
 
     trajectory = np.cumsum(transforms, axis=0)
     smoothed_trajectory = smooth(trajectory)
-    difference = smoothed_trajectory - trajectory
-    transforms_smooth = transforms + difference
+    diff = smoothed_trajectory - trajectory
+    smoothed_transforms = transforms + diff
+    h,w = frames[0].shape[:2]
+    stabilized_frames = [frames[0]]
+    
+    for i, frame in enumerate(frames[:-1]):
+        sys.stdout.write(f"--Stabilizing frame: {i+2}/{len(frames)}\r")
+        sys.stdout.flush()
+        M = smoothed_transforms[i].reshape((3,3))
+        out = cv2.warpPerspective(frame, M, (w,h))
+        out = fixBorder(out)
+        stabilized_frames.append(out)
+    print("")
 
-    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-
-    for i in range(n_frames-2):
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        dx = transforms_smooth[i,0]
-        dy = transforms_smooth[i,1]
-        da = transforms_smooth[i,2]
-
-        m = np.zeros((2,3), np.float32)
-        m[0,0] = np.cos(da)
-        m[0,1] = -np.sin(da)
-        m[1,0] = np.sin(da)
-        m[1,1] = np.cos(da)
-        m[0,2] = dx
-        m[1,2] = dy
-
-        frame_stabilized = cv2.warpAffine(frame, m, (w,h))
-        frame_stabilized = fixBorder(frame_stabilized)
-       
-        output.write(frame_stabilized)
+    write_video(stabilized_frames, output_video, input_video)

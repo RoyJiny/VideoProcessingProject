@@ -3,3 +3,4 @@ Inputs
 ScreenRec
 Temp
 .DS_Store
+**/__pycache__/

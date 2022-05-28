@@ -1,15 +1,6 @@
 import cv2
 
 def get_video_parameters(capture: cv2.VideoCapture) -> dict:
-    """Get an OpenCV capture object and extract its parameters.
-
-    Args:
-        capture: cv2.VideoCapture object.
-
-    Returns:
-        parameters: dict. Video parameters extracted from the video.
-
-    """
     fourcc = int(capture.get(cv2.CAP_PROP_FOURCC))
     fps = int(capture.get(cv2.CAP_PROP_FPS))
     height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -42,3 +33,13 @@ def extract_first_frame(input_video):
     capture.release()
     cv2.destroyAllWindows()
     return frame
+
+def write_video(frames, path, params_like):
+    tmp_capture = cv2.VideoCapture(params_like)
+    params = get_video_parameters(tmp_capture)
+    output = cv2.VideoWriter(path, params["fourcc"], params["fps"], (params["width"],params["height"]), True)
+    for frame in frames:
+        output.write(frame)
+    tmp_capture.release()
+    output.release()
+    cv2.destroyAllWindows()

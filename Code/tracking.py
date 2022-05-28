@@ -1,9 +1,11 @@
+import numpy.matlib as matlib
 import numpy as np
 import cv2
 from scipy import ndimage
 from skimage import measure, morphology
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import sys
 from utils import *
 
 # SET NUMBER OF PARTICLES
@@ -153,15 +155,15 @@ def show_particles_on_frame(image: np.ndarray, state: np.ndarray, W: np.ndarray)
 
 def calculate_rectangle_coordinates(frame):
     smoothed_mask = ndimage.median_filter(frame, 20)
-    inter = cv2.morphologyEx(smoothed_mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    inter = cv2.morphologyEx(smoothed_mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3)))
     cnts, _ = cv2.findContours(inter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cnt = max(cnts, key=cv2.contourArea)
     out = np.zeros(smoothed_mask.shape, np.uint8)
     cv2.drawContours(out, [cnt], -1, 255, cv2.FILLED)
     out = cv2.bitwise_and(smoothed_mask, out)
-    plt.imshow(out, cmap='gray')
-    plt.show()
-    exit()
+    # plt.imshow(out, cmap='gray')
+    # plt.show()
+    # exit()
 
     dim0_indicator = np.max(out, axis=0)
     dim0_idx = np.where(dim0_indicator == 1)[0]
@@ -178,25 +180,14 @@ def calculate_initial_state(binary_mask_frames):
     first_frame_coordinates = calculate_rectangle_coordinates(binary_mask_frames[0])
     second_frame_coordinates = calculate_rectangle_coordinates(binary_mask_frames[1])
 
-    print(first_frame_coordinates)
-    print(second_frame_coordinates)
-
-    fig, ax = plt.subplots(1)
-    plt.imshow(binary_mask_frames[0],cmap='gray')
-    
     x,y,w,h = first_frame_coordinates
-    
-    rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor='r', facecolor='none')
-    ax.add_patch(rect)
-    fig.canvas.draw()
-    plt.show()
-    exit()
+    x2,y2,w2,h2 = second_frame_coordinates
+    x_center = x + w//2
+    y_center = y + h//2
+
+    return (x_center,y_center,w//2,h//2,x2-x,y2-y)
 
 def apply_tracking(input_video, output_video, binary_mask_frames):
-    s_initial = calculate_initial_state(binary_mask_frames)
-    state_at_first_frame = np.matlib.repmat(s_initial, N, 1)
-    S = predict_particles(state_at_first_frame)
-
     capture = cv2.VideoCapture(input_video)
     params = get_video_parameters(capture)
     output = cv2.VideoWriter(output_video, params["fourcc"], params["fps"], (params["width"],params["height"]), True)
@@ -204,6 +195,39 @@ def apply_tracking(input_video, output_video, binary_mask_frames):
     if not capture.isOpened():
         print("failed to open capture for", input_video)
         return
+
+    frame_count = 0
+    while True:
+        sys.stdout.write(f"Working on frame: {frame_count}\r")
+        sys.stdout.flush()
+        binary_frames = binary_mask_frames[frame_count:frame_count+2]
+        state = calculate_initial_state(binary_frames)
+        
+
+        x,y,w,h = state[:4]
+        (x, y, w, h) = (
+            x - w,
+            y - h,
+            2 * w,
+            2 * h
+        )
+
+        output_frame = frame
+        output_frame[y,x:x+w] = [0,255,0]
+        output_frame[y+h,x:x+w] = [0,255,0]
+        output_frame[y:y+h,x] = [0,255,0]
+        output_frame[y+h,x+w] = [0,255,0]
+        output.write(output_frame)
+    capture.release()
+    output.release()
+    cv2.destroyAllWindows()
+    exit()
+
+
+    s_initial = calculate_initial_state(binary_mask_frames)
+    state_at_first_frame = matlib.repmat(s_initial, N, 1)
+    S = predict_particles(state_at_first_frame)
+
 
     ret, frame = capture.read()
     if frame is None:
@@ -220,7 +244,13 @@ def apply_tracking(input_video, output_video, binary_mask_frames):
 
     C = np.cumsum(W)
 
+    frame_count = 0
+    from datetime import datetime
+    start_time = datetime.now()
     while True:
+        sys.stdout.write(f"Working on frame: {frame_count} ({datetime.now()-start_time})\r")
+        sys.stdout.flush()
+        frame_count += 1
         ret, frame = capture.read()
         if frame is None:
             break
