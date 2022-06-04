@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 def get_video_parameters(capture: cv2.VideoCapture) -> dict:
     fourcc = int(capture.get(cv2.CAP_PROP_FOURCC))
@@ -39,7 +40,25 @@ def write_video(frames, path, params_like):
     params = get_video_parameters(tmp_capture)
     output = cv2.VideoWriter(path, params["fourcc"], params["fps"], (params["width"],params["height"]), True)
     for frame in frames:
-        output.write(frame)
+        output.write(frame.astype(np.uint8))
     tmp_capture.release()
+    print(f"Saved Video at {path}")
     output.release()
     cv2.destroyAllWindows()
+
+def calculate_rectangle_coordinates(frame, delta=0):
+    dim0_indicator = np.max(frame, axis=0)
+    dim0_idx = np.where(dim0_indicator == 255)[0]
+    dim1_indicator = np.max(frame, axis=1)
+    dim1_idx = np.where(dim1_indicator == 255)[0]
+    
+    dim0_start = dim0_idx[0]
+    dim0_end = dim0_idx[-1]
+    dim1_start = dim1_idx[0]
+    dim1_end = dim1_idx[-1]
+    # dim0_start = max(dim0_idx[0]-delta,0)
+    # dim0_end = min(dim0_idx[-1]+delta, frame.shape[0]-1)
+    # dim1_start = max(dim1_idx[0]-delta, 0)
+    # dim1_end = min(dim1_idx[-1]+delta, frame.shape[1]-1)
+
+    return (dim0_start, dim1_start, dim0_end, dim1_end)

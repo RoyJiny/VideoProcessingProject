@@ -153,74 +153,36 @@ def show_particles_on_frame(image: np.ndarray, state: np.ndarray, W: np.ndarray)
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     return data
 
-def calculate_rectangle_coordinates(frame):
-    smoothed_mask = ndimage.median_filter(frame, 20)
-    inter = cv2.morphologyEx(smoothed_mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3)))
-    cnts, _ = cv2.findContours(inter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    cnt = max(cnts, key=cv2.contourArea)
-    out = np.zeros(smoothed_mask.shape, np.uint8)
-    cv2.drawContours(out, [cnt], -1, 255, cv2.FILLED)
-    out = cv2.bitwise_and(smoothed_mask, out)
-    # plt.imshow(out, cmap='gray')
-    # plt.show()
-    # exit()
+# def calculate_initial_state(binary_mask_frames):
+#     first_frame_coordinates = calculate_rectangle_coordinates(binary_mask_frames[0])
+#     second_frame_coordinates = calculate_rectangle_coordinates(binary_mask_frames[1])
 
-    dim0_indicator = np.max(out, axis=0)
-    dim0_idx = np.where(dim0_indicator == 1)[0]
-    dim1_indicator = np.max(out, axis=1)
-    dim1_idx = np.where(dim1_indicator == 1)[0]
-    dim0_start = dim0_idx[0]
-    dim0_end = dim0_idx[-1]
-    dim1_start = dim1_idx[0]
-    dim1_end = dim1_idx[-1]
+#     x,y,w,h = first_frame_coordinates
+#     x2,y2,w2,h2 = second_frame_coordinates
+#     x_center = x + w//2
+#     y_center = y + h//2
 
-    return (dim0_start, dim1_start, dim0_end-dim0_start, dim1_end-dim1_start)
+#     return (x_center,y_center,w//2,h//2,x2-x,y2-y)
 
-def calculate_initial_state(binary_mask_frames):
-    first_frame_coordinates = calculate_rectangle_coordinates(binary_mask_frames[0])
-    second_frame_coordinates = calculate_rectangle_coordinates(binary_mask_frames[1])
-
-    x,y,w,h = first_frame_coordinates
-    x2,y2,w2,h2 = second_frame_coordinates
-    x_center = x + w//2
-    y_center = y + h//2
-
-    return (x_center,y_center,w//2,h//2,x2-x,y2-y)
-
-def apply_tracking(input_video, output_video, binary_mask_frames):
-    capture = cv2.VideoCapture(input_video)
-    params = get_video_parameters(capture)
-    output = cv2.VideoWriter(output_video, params["fourcc"], params["fps"], (params["width"],params["height"]), True)
+def apply_tracking(input_video, output_video, binary_frames_path):
+    original_frames = extract_frames_list(input_video)
+    binary_mask_frames = np.load(binary_frames_path, allow_pickle=True)
     
-    if not capture.isOpened():
-        print("failed to open capture for", input_video)
-        return
-
-    frame_count = 0
-    while True:
+    output_frames = []
+    for frame_count in range(len(binary_mask_frames)):
         sys.stdout.write(f"Working on frame: {frame_count}\r")
         sys.stdout.flush()
-        binary_frames = binary_mask_frames[frame_count:frame_count+2]
-        state = calculate_initial_state(binary_frames)
+        y1,x1,y2,x2 = calculate_rectangle_coordinates(binary_mask_frames[frame_count])
         
+        output_frame = original_frames[frame_count]
+        output_frame[x1,y1:y2] = [0,255,0]
+        output_frame[x2,y1:y2] = [0,255,0]
+        output_frame[x1:x2,y1] = [0,255,0]
+        output_frame[x1:x2,y2] = [0,255,0]
+        output_frames.append(output_frame)
+    print("")
 
-        x,y,w,h = state[:4]
-        (x, y, w, h) = (
-            x - w,
-            y - h,
-            2 * w,
-            2 * h
-        )
-
-        output_frame = frame
-        output_frame[y,x:x+w] = [0,255,0]
-        output_frame[y+h,x:x+w] = [0,255,0]
-        output_frame[y:y+h,x] = [0,255,0]
-        output_frame[y+h,x+w] = [0,255,0]
-        output.write(output_frame)
-    capture.release()
-    output.release()
-    cv2.destroyAllWindows()
+    write_video(output_frames, output_video, input_video)
     exit()
 
 
