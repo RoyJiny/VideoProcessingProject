@@ -23,7 +23,7 @@ while True:
       plt.show()
       break
 
-    cv2.imshow("frame", np.concatenate((input_frame, frame)))
+    cv2.imshow("frame", frame)
 
     if cv2.waitKey(25) & 0xFF == ord('q'):
       break

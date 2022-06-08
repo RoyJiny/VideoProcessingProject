@@ -55,7 +55,7 @@ def apply_mog_and_knn(frames):
     return binary_mask_frames
 
 def smooth_masks(masks):
-    new_masks = [masks[0]]
+    new_masks = [(masks[0] == 255).astype(np.uint8)]
     for i,mask in enumerate(masks):
         sys.stdout.write(f"--Smoothing mask: {i+1}/{len(masks)}\r")
         sys.stdout.flush()
@@ -106,4 +106,4 @@ def apply_background_mask(input_video, output_video, mask_output_video, binary_f
     write_video(output_frames, output_video, input_video)
     write_video(mask_output_frames, mask_output_video, input_video)
 
-    np.array(binary_mask_frames).dump(binary_frames_path)
+    return binary_mask_frames

@@ -30,7 +30,7 @@ def run(initial_video_path, background_img):
     stabilization_time = time.time() - time_metric_start
 
     print('\nRunning video background subtraction')
-    apply_background_mask(stabilized_video, extracted_video, binary_mask_video, binary_frames_path)
+    binary_mask_frames = apply_background_mask(stabilized_video, extracted_video, binary_mask_video, binary_frames_path)
     background_sub_time = time.time() - time_metric_start
 
     print('\nRunning video matting')
@@ -38,7 +38,7 @@ def run(initial_video_path, background_img):
     matting_time = time.time() - time_metric_start
 
     print('\nRunning video tracking')
-    apply_tracking(matting_video, output_video, binary_frames_path)
+    apply_tracking(matting_video, output_video, binary_mask_frames)
     tracking_time = time.time() - time_metric_start
 
 

@@ -3,10 +3,8 @@ import sys
 from utils import *
 import json
 
-def apply_tracking(input_video, output_video, binary_frames_path):
+def apply_tracking(input_video, output_video, binary_mask_frames):
     original_frames = extract_frames_list(input_video)
-    binary_mask_frames = np.load(binary_frames_path, allow_pickle=True)
-    
     output_frames = []
     tracking_coordiantes = []
     for frame_count in range(len(binary_mask_frames)):

@@ -34,7 +34,7 @@ def apply_matting(input_video, binary_video, background_path, output_video, outp
         sys.stdout.flush()
 
         luma_channel = cv2.split(yuv_frame)[0]
-        if np.max(binary_frame) > 1: binary_frame = (binary_frame > 150).astype(np.uint8)
+        binary_frame = (binary_frame > 127).astype(np.uint8)
 
         x1,y1,x2,y2 = calculate_rectangle_coordinates(binary_frame, delta=20)
         y1 = 0
