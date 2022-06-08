@@ -11,7 +11,7 @@ dependencies:
   - brunsli=0.1=h2531618_0
   - bzip2=1.0.8=h7b6447c_0
   - c-ares=1.18.1=h7f8727e_0
-  - ca-certificates=2022.3.29=h06a4308_0
+  - ca-certificates=2022.4.26=h06a4308_0
   - cairo=1.16.0=hf32fb01_1
   - certifi=2021.10.8=py39h06a4308_2
   - cfitsio=3.470=hf0d0db6_6
@@ -61,6 +61,7 @@ dependencies:
   - libgfortran4=7.5.0=ha8ba4b0_17
   - libgomp=9.3.0=h5101ec6_17
   - libidn2=2.3.2=h7f8727e_0
+  - libllvm10=10.0.1=hbcb73fb_5
   - libnghttp2=1.46.0=hce63b2e_0
   - libopenblas=0.3.18=hf726d26_0
   - libopus=1.3.1=h7b6447c_0
@@ -78,6 +79,7 @@ dependencies:
   - libxcb=1.14=h7b6447c_0
   - libxml2=2.9.12=h03d6c58_0
   - libzopfli=1.0.3=he6710b0_0
+  - llvmlite=0.36.0=py39h612dafd_4
   - locket=0.2.1=py39h06a4308_2
   - lz4-c=1.9.3=h295c915_1
   - matplotlib=3.4.3=py39h06a4308_0
@@ -86,10 +88,11 @@ dependencies:
   - ncurses=6.3=h7f8727e_2
   - nettle=3.7.3=hbbd107a_1
   - networkx=2.7.1=pyhd3eb1b0_0
+  - numba=0.53.1=py39ha9443f7_0
   - opencv=4.5.4=py39hbeebcbe_3
   - openh264=2.1.1=h4ff587b_0
   - openjpeg=2.4.0=h3ad879b_0
-  - openssl=1.1.1n=h7f8727e_0
+  - openssl=1.1.1o=h7f8727e_0
   - packaging=21.3=pyhd3eb1b0_0
   - partd=1.2.0=pyhd3eb1b0_1
   - pcre=8.45=h295c915_0
@@ -114,6 +117,7 @@ dependencies:
   - six=1.16.0=pyhd3eb1b0_1
   - snappy=1.1.8=he6710b0_0
   - sqlite=3.38.2=hc218d9a_0
+  - tbb=2020.3=hfd86e86_0
   - threadpoolctl=2.2.0=pyh0d69192_0
   - tifffile=2021.7.2=pyhd3eb1b0_2
   - tk=8.6.11=h1ccaba5_0
