@@ -43,10 +43,6 @@ def calculate_rectangle_coordinates(frame, delta=0):
     dim1_indicator = np.max(frame, axis=1)
     dim1_idx = np.where(dim1_indicator == np.unique(frame)[1])[0]
     
-    # dim0_start = dim0_idx[0]
-    # dim0_end = dim0_idx[-1]
-    # dim1_start = dim1_idx[0]
-    # dim1_end = dim1_idx[-1]
     dim0_start = max(dim0_idx[0]-delta,0)
     dim0_end = min(dim0_idx[-1]+delta, frame.shape[1]-1)
     dim1_start = max(dim1_idx[0]-delta, 0)

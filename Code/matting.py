@@ -40,19 +40,19 @@ def apply_matting(input_video, binary_video, background_path, output_video, outp
         y1 = 0
         y2 = frame.shape[0] - 1
 
+        ''' create masks '''
+        foreground_mask = cv2.erode(binary_frame, np.ones((3,3)), iterations=6)
+        background_mask = 1 - cv2.dilate(binary_frame, np.ones((3,3)), iterations=5)
+
         ''' crop to interst area '''
         cropped_luma = luma_channel[y1:y2,x1:x2]
         cropped_frame = frame[y1:y2,x1:x2]
         cropped_background = background[y1:y2,x1:x2]
-
-        ''' create masks and calculate distance map '''
-        foreground_mask = cv2.erode(binary_frame, np.ones((3,3)), iterations=6)
         cropped_foreground_mask = foreground_mask[y1:y2,x1:x2]
-        cropped_foreground_mask_dist_map = GeodisTK.geodesic2d_raster_scan(cropped_luma, cropped_foreground_mask, 1.0, 1)
-        
-        background_mask = cv2.dilate(binary_frame, np.ones((3,3)), iterations=5)
-        background_mask = 1 - background_mask
         cropped_background_mask = background_mask[y1:y2,x1:x2]
+
+        ''' calculate distance maps '''
+        cropped_foreground_mask_dist_map = GeodisTK.geodesic2d_raster_scan(cropped_luma, cropped_foreground_mask, 1.0, 1)
         cropped_background_mask_dist_map = GeodisTK.geodesic2d_raster_scan(cropped_luma, cropped_background_mask, 1.0, 1)
 
         ''' create narrow band undecided zone '''
@@ -91,6 +91,7 @@ def apply_matting(input_video, binary_video, background_path, output_video, outp
         alpha_frame[y1:y2,x1:x2] = cropped_alpha
         alpha_frame = (alpha_frame * 255).astype(np.uint8)
         alpha_frames.append(np.dstack((alpha_frame,alpha_frame,alpha_frame)))
+    print("")
 
     write_video(matted_frames, output_video)
     write_video(alpha_frames, output_alpha_video)

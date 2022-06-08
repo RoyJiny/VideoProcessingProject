@@ -10,11 +10,11 @@ def apply_tracking(input_video, output_video, binary_frames_path):
     output_frames = []
     tracking_coordiantes = []
     for frame_count in range(len(binary_mask_frames)):
-        sys.stdout.write(f"--Applying tracking on frame: {frame_count}\r")
+        sys.stdout.write(f"--Applying tracking on frame: {frame_count+1}/{len(binary_mask_frames)}\r")
         sys.stdout.flush()
         
         y1,x1,y2,x2 = calculate_rectangle_coordinates(binary_mask_frames[frame_count])
-        tracking_coordiantes.append([(x1+x2)//2, (y1+y2)//2, abs(x2-x1)//2, abs(y2-y1)//2])
+        tracking_coordiantes.append([int((x1+x2)//2), int((y1+y2)//2), int(abs(x2-x1)//2), int(abs(y2-y1)//2)])
         
         output_frame = original_frames[frame_count]
         output_frame[x1,y1:y2] = [0,0,255]

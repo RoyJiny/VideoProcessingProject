@@ -67,31 +67,6 @@ def smooth_masks(masks):
     print("")
     return new_masks
 
-def get_average_colors(frames):
-    w = 7
-    kernel = np.ones((w,w))/(w**2)
-    averaged_frames = np.array([cv2.filter2D(frame, -1, kernel) for frame in frames]) 
-    average_color = np.mean(averaged_frames, axis=0).astype(np.uint8)
-    return average_color
-
-def get_masks_by_color_distance(frames):
-    delta = 40
-    masks = []
-    average_color = get_average_colors(frames)
-    colors_bottom = average_color - delta
-    colors_top = average_color + delta
-    
-    for i,frame in enumerate(frames):
-        sys.stdout.write(f"--Creating mask by color distance for frame: {i+1}/{len(frames)}\r")
-        sys.stdout.flush()
-        greater = np.greater(frame, colors_bottom)
-        less = np.less(frame, colors_top)
-        mask = 1 - np.logical_and(less, greater).all(axis=2).astype(np.uint8)
-        masks.append(mask)
-    print("")
-
-    return masks
-
 def apply_background_mask(input_video, output_video, mask_output_video, binary_frames_path):
     frames = extract_frames_list(input_video)
     num_of_frames = len(frames)
@@ -113,14 +88,6 @@ def apply_background_mask(input_video, output_video, mask_output_video, binary_f
         sys.stdout.flush()
         binary_mask_frames[i] = clean_binary_frame(binary_mask_frames[i])
     print("")
-
-    ''' Use color distance masks '''
-    # color_masks = get_masks_by_color_distance(frames)
-    # for i in range(len(binary_mask_frames)):
-    #     sys.stdout.write(f"--Applying color distance mask for frame: {i+1}/{len(frames)}\r")
-    #     sys.stdout.flush()
-    #     binary_mask_frames[i] = binary_mask_frames[i] * color_masks[i]
-    # print("")
 
     ''' Smooth the masks '''
     binary_mask_frames = smooth_masks(binary_mask_frames)

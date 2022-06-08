@@ -6,8 +6,6 @@ import numpy as np
 from utils import *
 
 video = f"../Outputs/{sys.argv[1]}_315029405_207880865.avi"
-# video = f"../Outputs/{sys.argv[1]}_roy_315029405_207880865.avi"
-# video = "masks_tmp.avi"
 input_vid = "../Inputs/INPUT.avi"
 only_first_frame = 'first' in sys.argv
 
